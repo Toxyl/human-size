@@ -1,0 +1,66 @@
+#!/bin/bash
+read-stdin() {
+	if [ ! -t 0 ] ; then I=$(cat /dev/stdin) ; else I="" ; fi
+	echo "$I"
+}
+
+STDIN=$(read-stdin)
+
+#if [ ! -t 0 ] ; then  STDIN=$(cat /dev/stdin) ; fi
+
+if [ "$1" == "" ] && [ "$STDIN" == "" ] ; then
+  	echo ""
+	echo "Converts a size to a human-readable size."
+	echo "If a unit is not given, the unit defaults to bytes."
+	echo ""
+	echo "Usage:   human-size [size] <unit>"
+  	echo "Example: human-size 1024 K"
+  	echo "         human-size 1024K"
+  	echo "         echo \"1024K\" | human-size "
+else
+	if [ "$STDIN" == "" ] ; then
+		V=$1
+		U="$2"
+	else
+		V="$STDIN"
+		U=""
+	fi
+
+	if [ "$U" == "" ] ; then
+		U=$(echo "$V" | perl -pe "s@[0-9]+\s*([KMGTPEZY]{1}).*@\1@")
+		V=$(echo "$V" | perl -pe "s@([0-9]+)\s*[KMGTPEZY]{1}.*@\1@")
+	fi
+
+	case $U in
+          "K") B=1 ;;
+          "M") B=2 ;;
+          "G") B=3 ;;
+          "T") B=4 ;;
+          "P") B=5 ;;
+          "E") B=6 ;;
+          "Z") B=7 ;;
+          "Y") B=8 ;;
+            *) B=0 ;;
+        esac
+
+	while (( $(bc <<< "$V >= 1024") )) ; do
+		V=$(math "$V / 1024")
+		((B++))
+	done
+
+	case $B in
+	  0) U=" B" ;;
+	  1) U="KB" ;;
+	  2) U="MB" ;;
+	  3) U="GB" ;;
+	  4) U="TB" ;;
+	  5) U="PB" ;;
+	  6) U="EB" ;;
+	  7) U="ZB" ;;
+	  8) U="YB" ;;
+	  *) U="--" ;;
+	esac
+
+	printf "%.2f %s" $V $U
+fi
+
